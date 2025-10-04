@@ -154,23 +154,38 @@
             background: #fee2e2;
         }
 
+        .option.neutral {
+            border-color: #94a3b8;
+            background: #f1f5f9;
+        }
+
+        .option-explanation {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .option-explanation.correct-exp {
+            color: #065f46;
+        }
+
+        .option-explanation.wrong-exp {
+            color: #991b1b;
+        }
+
+        .option-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
         .feedback {
             margin-top: 20px;
             padding: 20px;
             border-radius: 8px;
             display: none;
-        }
-
-        .feedback.correct {
-            background: #d1fae5;
-            border-left: 4px solid #10b981;
-            display: block;
-        }
-
-        .feedback.incorrect {
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            display: block;
         }
 
         .progress {
@@ -367,8 +382,8 @@
         let currentQuiz = [];
         let currentQuestionIndex = 0;
         let correctAnswers = 0;
-        // let apiKey = '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';
-        let apiKey='ur_scret_key';
+        let apiKey = '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';
+        // let apiKey='';
         let studyContext = {};
         let weakAreas = [];
         let answeredQuestions = [];
@@ -434,11 +449,17 @@ Return ONLY a valid JSON array with this exact structure, no additional text:
     "topic": "Specific topic this question tests",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": 0,
-    "explanation": "Detailed explanation of why this answer is correct and why other options are wrong"
+    "correctExplanation": "Clear, simple explanation in 2-3 sentences of why this answer is correct with examples if possible",
+    "wrongExplanations": {
+      "0": "Why this option is wrong",
+      "1": "Why this option is wrong", 
+      "2": "Why this option is wrong",
+      "3": "Why this option is wrong"
+    }
   }
 ]
 
-The correctAnswer should be the index (0-3) of the correct option.`;
+The correctAnswer should be the index (0-3) of the correct option. Provide simple, easy-to-understand explanations suitable for students.`;
 
             const response = await callGeminiAPI(prompt);
             const jsonMatch = response.match(/\[[\s\S]*\]/);
@@ -512,27 +533,48 @@ The correctAnswer should be the index (0-3) of the correct option.`;
                 }
             }
             
-            options[selectedIndex].classList.add(isCorrect ? 'correct' : 'incorrect');
-            if (!isCorrect) {
-                options[question.correctAnswer].classList.add('correct');
-            }
-
-            const feedback = document.getElementById('feedback');
-            feedback.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
-            
-            // Enhanced explanation showing why wrong and why correct
-            let feedbackHTML = `<strong>${isCorrect ? '✓ Correct!' : '✗ Incorrect'}</strong>`;
-            
-            if (!isCorrect) {
-                feedbackHTML += `
-                    <p><strong>Your answer:</strong> ${question.options[selectedIndex]}</p>
-                    <p><strong>Correct answer:</strong> ${question.options[question.correctAnswer]}</p>
-                `;
-            }
-            
-            feedbackHTML += `<p><strong>Explanation:</strong> ${question.explanation}</p>`;
-            
-            feedback.innerHTML = feedbackHTML;
+            // Mark all options with their status and show explanations
+            options.forEach((opt, index) => {
+                const optionDiv = opt;
+                
+                if (index === question.correctAnswer) {
+                    optionDiv.classList.add('correct');
+                    // Add correct explanation
+                    const explanation = document.createElement('div');
+                    explanation.className = 'option-explanation correct-exp';
+                    explanation.innerHTML = `
+                        <div class="option-label">✓ Right answer</div>
+                        ${question.correctExplanation || question.explanation || 'This is the correct answer.'}
+                    `;
+                    optionDiv.appendChild(explanation);
+                } else if (index === selectedIndex) {
+                    optionDiv.classList.add('incorrect');
+                    // Add wrong explanation for selected wrong answer
+                    const explanation = document.createElement('div');
+                    explanation.className = 'option-explanation wrong-exp';
+                    const wrongExp = question.wrongExplanations && question.wrongExplanations[index] 
+                        ? question.wrongExplanations[index] 
+                        : 'This is not the correct answer.';
+                    explanation.innerHTML = `
+                        <div class="option-label">✗ Not quite</div>
+                        ${wrongExp}
+                    `;
+                    optionDiv.appendChild(explanation);
+                } else {
+                    // Other wrong options (not selected)
+                    optionDiv.classList.add('neutral');
+                    const explanation = document.createElement('div');
+                    explanation.className = 'option-explanation wrong-exp';
+                    const wrongExp = question.wrongExplanations && question.wrongExplanations[index] 
+                        ? question.wrongExplanations[index] 
+                        : 'This is not the correct answer.';
+                    explanation.innerHTML = `
+                        <div class="option-label">✗ Not quite</div>
+                        ${wrongExp}
+                    `;
+                    optionDiv.appendChild(explanation);
+                }
+            });
 
             if (isCorrect) {
                 correctAnswers++;
@@ -703,4 +745,3 @@ Provide a clear, concise explanation that helps them understand the concept bett
     </script>
 </body>
 </html>
-
